@@ -3,7 +3,8 @@ OUT ?= build
 EXEC := \
 	test-simple \
 	test-unit \
-	test-bench
+	test-bench \
+	test-fix
 EXEC := $(addprefix $(OUT)/,$(EXEC))
 
 all: $(EXEC)
@@ -15,7 +16,8 @@ CFLAGS = -Wall -std=c99 -g -O2 -I.
 LDFLAGS = -lm
 
 OBJS := \
-	expression.o
+	expression.o \
+	fix_p_num.o
 
 deps := $(OBJS:%.o=%.o.d)
 OBJS := $(addprefix $(OUT)/,$(OBJS))
