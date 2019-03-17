@@ -4,8 +4,16 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#include "fix_p_num.h"
+
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#define FIXPOP 1
+
+#if FIXPOP
+double fix_p_num_to_float(fix_p_num* fix);
 #endif
 
 #define vec(T)   \
@@ -60,10 +68,18 @@ struct expr {
     int type;
     union {
         struct {
+            #if FIXPOP
+            fix_p_num value;
+            #else
             float value;
+            #endif
         } num;
         struct {
+            #if FIXPOP
+            fix_p_num* value;
+            #else
             float *value;
+            #endif
         } var;
         struct {
             vec_expr_t args;
@@ -105,7 +121,11 @@ struct expr_func *expr_func(struct expr_func *funcs, const char *s, size_t len);
  * Variables
  */
 struct expr_var {
+    #if FIXPOP
+    fix_p_num value;
+    #else
     float value;
+    #endif
     struct expr_var *next;
     char name[];
 };
@@ -118,7 +138,11 @@ struct expr_var *expr_var(struct expr_var_list *vars,
                           const char *s,
                           size_t len);
 
+#if FIXPOP
+fix_p_num expr_eval(struct expr *e);
+#else
 float expr_eval(struct expr *e);
+#endif
 
 #define EXPR_TOP (1 << 0)
 #define EXPR_TOPEN (1 << 1)

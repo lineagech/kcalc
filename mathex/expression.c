@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern const fix_p_num one;
+extern const fix_p_num zero;
+
 /*
  * Expression data types
  */
@@ -61,7 +64,7 @@ static int prec[] = {0, 1, 1, 1, 2, 2, 2, 2, 3,  3,  4,  4, 5, 5,
                 0           \
             }               \
         }                   \
-    }
+    }                       
 
 static int expr_is_unary(enum expr_type op)
 {
@@ -194,7 +197,7 @@ struct expr_var *expr_var(struct expr_var_list *vars, const char *s, size_t len)
     if (!v)
         return NULL; /* allocation failed */
     v->next = vars->head;
-    v->value = 0;
+    v->value = zero;
     strncpy(v->name, s, len);
     v->name[len] = '\0';
     vars->head = v;
@@ -211,6 +214,7 @@ static int to_int(float x)
     return (int) x;
 }
 
+#if !(FIXPOP)
 float expr_eval(struct expr *e)
 {
     float n;
@@ -312,6 +316,228 @@ float expr_eval(struct expr *e)
         return NAN;
     }
 }
+#else
+fix_p_num expr_eval(struct expr *e)
+{
+    fix_p_num n;
+    fix_p_num result;
+    fix_p_num a;
+    fix_p_num b;
+    int i;
+    int _exp;
+    int gt, eq;
+
+    switch (e->type) {
+    /*
+    case OP_UNARY_MINUS:
+        return -(expr_eval(&e->param.op.args.buf[0]));
+    */
+    /*
+    case OP_UNARY_LOGICAL_NOT:
+        return !(expr_eval(&e->param.op.args.buf[0]));
+    */
+    /*
+    case OP_UNARY_BITWISE_NOT:
+        return ~(to_int(expr_eval(&e->param.op.args.buf[0])));
+    */
+    case OP_POWER:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        _exp = fix_p_num_toi(&b);
+        if (_exp == 0) {
+            result.value = 1;
+            result.int_len = 1;
+        }
+        else if (_exp > 0)
+        {
+            for (i=0; i<abs(_exp); i++) {
+                result = fix_p_num_mul(&result, &a);
+            }
+        }
+        else {
+            result = fix_p_num_div((fix_p_num*)&one, &a);
+            for (i=0; i<abs(_exp)-1; i++) {
+                result = fix_p_num_div(&result, &a);
+            }
+        }
+        return result;
+    case OP_MULTIPLY:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        return fix_p_num_mul(&a, &b);
+    case OP_DIVIDE:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        return fix_p_num_div(&a, &b);
+    /*
+    case OP_REMAINDER:
+        return fmodf(expr_eval(&e->param.op.args.buf[0]),
+                     expr_eval(&e->param.op.args.buf[1]));
+    */
+    case OP_PLUS:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        return fix_p_num_add(&a, &b);
+    case OP_MINUS:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        return fix_p_num_sub(&a, &b);
+    case OP_SHL:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        fix_init_d(&result, (fix_p_num_toi(&a)<<fix_p_num_toi(&b)));
+        return result;
+    case OP_SHR:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        fix_init_d(&result, (fix_p_num_toi(&a)>>fix_p_num_toi(&b)));
+        return result;
+    case OP_LT:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        gt = fix_p_num_gt(&a, &b);
+        eq = fix_p_num_gt(&a, &b);
+        if (!gt && !eq) {
+            result.value = 1;
+            result.int_len = 1;
+        }
+        else {
+            result.value = 0;
+            result.int_len = 1;
+        }
+        return result;
+    case OP_LE:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        gt = fix_p_num_gt(&a, &b);
+        if (!gt) {
+            result.value = 1;
+            result.int_len = 1;
+        }
+        else {
+            result.value = 0;
+            result.int_len = 1;
+        }
+        return result;
+    case OP_GT:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        gt = fix_p_num_gt(&a, &b);
+        if (gt) {
+            result.value = 1;
+            result.int_len = 1;
+        }
+        else {
+            result.value = 0;
+            result.int_len = 1;
+        }
+        return result;
+    case OP_GE:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        gt = fix_p_num_gt(&a, &b);
+        eq = fix_p_num_eq(&a, &b);
+        if (gt || eq) {
+            result.value = 1;
+            result.int_len = 1;
+        }
+        else {
+            result.value = 0;
+            result.int_len = 1;
+        }
+        return result;
+    case OP_EQ:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        eq = fix_p_num_eq(&a, &b);
+        if (eq) {
+            result.value = 1;
+            result.int_len = 1;
+        }
+        else {
+            result.value = 0;
+            result.int_len = 1;
+        }
+        return result;
+    case OP_NE:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        eq = fix_p_num_eq(&a, &b);
+        if (!eq) {
+            result.value = 1;
+            result.int_len = 1;
+        }
+        else {
+            result.value = 0;
+            result.int_len = 1;
+        }
+        return result;
+    case OP_BITWISE_AND:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        int tmp = fix_p_num_toi(&a) & fix_p_num_toi(&b);
+        result.value = tmp;
+        result.int_len = IWL_LIMIT;
+        return result;
+    case OP_BITWISE_OR:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        result.value = fix_p_num_toi(&a) | fix_p_num_toi(&b);
+        result.int_len = IWL_LIMIT;
+        return result;
+    case OP_BITWISE_XOR:
+        a = expr_eval(&e->param.op.args.buf[0]);
+        b = expr_eval(&e->param.op.args.buf[1]);
+        result.value = fix_p_num_toi(&a) ^ fix_p_num_toi(&b);
+        result.int_len = IWL_LIMIT;
+        return result;
+    case OP_LOGICAL_AND:
+        n = expr_eval(&e->param.op.args.buf[0]);
+        if (fix_p_num_toi(&n) != 0) {
+            n = expr_eval(&e->param.op.args.buf[1]);
+            if (fix_p_num_toi(&n) != 0) {
+                return n;
+            }
+        }
+        return n;
+    case OP_LOGICAL_OR:
+        n = expr_eval(&e->param.op.args.buf[0]);
+        if (fix_p_num_toi(&n) != 0) {
+            return n;
+        } else {
+            n = expr_eval(&e->param.op.args.buf[1]);
+            if (fix_p_num_toi(&n) != 0) {
+                return n;
+            }
+        }
+        n.int_len = 1;
+        n.value = 1;
+        return n;
+    case OP_ASSIGN:
+        n = expr_eval(&e->param.op.args.buf[1]);
+        if (vec_nth(&e->param.op.args, 0).type == OP_VAR) {
+            *e->param.op.args.buf[0].param.var.value = n;
+        }
+        return n;
+    case OP_COMMA:
+        expr_eval(&e->param.op.args.buf[0]);
+        return expr_eval(&e->param.op.args.buf[1]);
+    case OP_CONST:
+        return e->param.num.value;
+    case OP_VAR:
+        return *e->param.var.value;
+    /*
+    case OP_FUNC:
+        return e->param.func.f->f(e->param.func.f, e->param.func.args,
+                                  e->param.func.context);
+    */
+    default:
+        n.value = 0;
+        n.int_len = 1;
+        return n;
+    }
+}
+#endif
 
 int expr_next_token(const char *s, size_t len, int *flags)
 {
@@ -439,7 +665,11 @@ static struct expr expr_const(float value)
 {
     struct expr e = expr_init();
     e.type = OP_CONST;
+#if FIXPOP
+    fix_init_d(&(e.param.num.value), value);
+#else
     e.param.num.value = value;
+#endif
     return e;
 }
 
@@ -834,4 +1064,36 @@ void expr_destroy(struct expr *e, struct expr_var_list *vars)
             v = next;
         }
     }
+}
+
+double fix_p_num_to_float(fix_p_num* fix) {
+    int i;
+    int sign = 0;
+    double result = 0;
+    double b = 1;
+
+    if (((fix->value >> 31) & 0x1)) {
+        fix->value = -fix->value;
+        sign = 1;
+    }
+
+    for (i=0; i<fix->int_len; i++) { // integer part
+        if ((fix->value >> (IWL_LIMIT-fix->int_len+i)) & 0x1) {
+            result += b;
+        }
+        b *= 2;
+    }
+    b = 0.5;
+    for (i=0; i<IWL_LIMIT-fix->int_len; i++) { // frac part
+        if ((fix->value >> (IWL_LIMIT-fix->int_len-1-i)) & 0x1) {
+            result += b;
+        }
+        b /= 2;
+    }
+    if (sign) {
+        fix->value = -fix->value;
+        return -result;
+    }
+
+    return result;
 }

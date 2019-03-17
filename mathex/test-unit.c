@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if !FIXPOP
+
 int status = 0;
 
 /*
@@ -417,3 +419,12 @@ int main()
 
     return status;
 }
+
+#else
+
+int main()
+{
+    return 0;
+}
+
+#endif

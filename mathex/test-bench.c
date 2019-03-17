@@ -5,6 +5,8 @@
 #include <string.h>
 #include <sys/time.h>
 
+#if !FIXPOP
+
 int status = 0;
 
 static float user_func_next(struct expr_func *f, vec_expr_t args, void *c)
@@ -62,3 +64,12 @@ int main()
 
     return status;
 }
+
+#else 
+
+int main() 
+{
+    return 0;
+}
+
+#endif

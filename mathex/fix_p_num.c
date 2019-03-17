@@ -10,6 +10,16 @@ const fix_p_num fix_min = {
     IWL_LIMIT
 };
 
+const fix_p_num one = {
+    1,
+    1
+};
+
+const fix_p_num zero = {
+    0,
+    1
+};
+
 void fix_p_num_min_int_len(fix_p_num* x) {
     unsigned int mask = 0x40000000;
     if (x == NULL) return;
@@ -45,7 +55,7 @@ static fix_p_num fix_p_num_abs(fix_p_num* fix)
     result.value = fix->value;
     return result;
 } 
-static __inline__ int fix_p_num_toi(fix_p_num* fix)
+int fix_p_num_toi(fix_p_num* fix)
 {
     return((int)(fix->value >> (IWL_LIMIT - fix->int_len)));
 
@@ -246,6 +256,25 @@ int fix_init_d(fix_p_num *fix, double d)
         fix->int_len = iwl;
         fix->value = (int)(d * (1 << (IWL_LIMIT - fix->int_len)));
     }
+    fix_p_num_min_int_len(fix);
     return 0;
 
 } 
+
+int fix_p_num_gt(fix_p_num *x, fix_p_num *y) {
+    int sign = fix_p_num_sign(x) ^ fix_p_num_sign(y);
+    if (sign) {
+        if (fix_p_num_sign(x) == 0) return 1;
+        else return 0;
+    }
+    if (x->int_len > y->int_len || x->int_len == y->int_len && x->value > y->value) 
+        return 1;
+    else 
+        return 0;
+}
+int fix_p_num_eq(fix_p_num *x, fix_p_num *y) {
+    if (x->value == y->value && x->int_len == y->int_len) 
+        return 1;
+    else 
+        return 0;
+}
