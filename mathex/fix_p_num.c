@@ -11,7 +11,7 @@ const fix_p_num fix_min = {
 };
 
 const fix_p_num one = {
-    1,
+    0x40000000,
     1
 };
 

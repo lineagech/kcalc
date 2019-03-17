@@ -344,13 +344,17 @@ fix_p_num expr_eval(struct expr *e)
         a = expr_eval(&e->param.op.args.buf[0]);
         b = expr_eval(&e->param.op.args.buf[1]);
         _exp = fix_p_num_toi(&b);
+        printf("_exp %d, %x, %d\n", _exp, a.value, a.int_len);
         if (_exp == 0) {
             result.value = 1;
             result.int_len = 1;
         }
         else if (_exp > 0)
-        {
-            for (i=0; i<abs(_exp); i++) {
+        {   
+            printf("%x, %d\n", a.value, a.int_len);
+            result = fix_p_num_mul((fix_p_num*)&one, &a);
+            printf("%x, %d\n", result.value, result.int_len);
+            for (i=0; i<_exp-1; i++) {
                 result = fix_p_num_mul(&result, &a);
             }
         }
@@ -398,80 +402,62 @@ fix_p_num expr_eval(struct expr *e)
         gt = fix_p_num_gt(&a, &b);
         eq = fix_p_num_gt(&a, &b);
         if (!gt && !eq) {
-            result.value = 1;
-            result.int_len = 1;
+            return one;
         }
         else {
-            result.value = 0;
-            result.int_len = 1;
+            return zero;
         }
-        return result;
     case OP_LE:
         a = expr_eval(&e->param.op.args.buf[0]);
         b = expr_eval(&e->param.op.args.buf[1]);
         gt = fix_p_num_gt(&a, &b);
         if (!gt) {
-            result.value = 1;
-            result.int_len = 1;
+            return one;
         }
         else {
-            result.value = 0;
-            result.int_len = 1;
+            return zero;
         }
-        return result;
     case OP_GT:
         a = expr_eval(&e->param.op.args.buf[0]);
         b = expr_eval(&e->param.op.args.buf[1]);
         gt = fix_p_num_gt(&a, &b);
         if (gt) {
-            result.value = 1;
-            result.int_len = 1;
+            return one;
         }
         else {
-            result.value = 0;
-            result.int_len = 1;
+            return zero;
         }
-        return result;
     case OP_GE:
         a = expr_eval(&e->param.op.args.buf[0]);
         b = expr_eval(&e->param.op.args.buf[1]);
         gt = fix_p_num_gt(&a, &b);
         eq = fix_p_num_eq(&a, &b);
         if (gt || eq) {
-            result.value = 1;
-            result.int_len = 1;
+            return one;
         }
         else {
-            result.value = 0;
-            result.int_len = 1;
+            return zero;
         }
-        return result;
     case OP_EQ:
         a = expr_eval(&e->param.op.args.buf[0]);
         b = expr_eval(&e->param.op.args.buf[1]);
         eq = fix_p_num_eq(&a, &b);
         if (eq) {
-            result.value = 1;
-            result.int_len = 1;
+            return one;
         }
         else {
-            result.value = 0;
-            result.int_len = 1;
+            return zero;
         }
-        return result;
     case OP_NE:
         a = expr_eval(&e->param.op.args.buf[0]);
         b = expr_eval(&e->param.op.args.buf[1]);
         eq = fix_p_num_eq(&a, &b);
         if (!eq) {
-            result.value = 1;
-            result.int_len = 1;
+            return one;
         }
         else {
-            result.value = 0;
-            result.int_len = 1;
+            return zero;
         }
-        return result;
     case OP_BITWISE_AND:
         a = expr_eval(&e->param.op.args.buf[0]);
         b = expr_eval(&e->param.op.args.buf[1]);
@@ -510,9 +496,7 @@ fix_p_num expr_eval(struct expr *e)
                 return n;
             }
         }
-        n.int_len = 1;
-        n.value = 1;
-        return n;
+        return one;
     case OP_ASSIGN:
         n = expr_eval(&e->param.op.args.buf[1]);
         if (vec_nth(&e->param.op.args, 0).type == OP_VAR) {
@@ -532,9 +516,7 @@ fix_p_num expr_eval(struct expr *e)
                                   e->param.func.context);
     */
     default:
-        n.value = 0;
-        n.int_len = 1;
-        return n;
+        return zero;
     }
 }
 #endif
